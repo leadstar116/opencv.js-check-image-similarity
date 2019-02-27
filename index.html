@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Check Similarity</title>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>    
+    <script src="node_modules/opencv.js/opencv.js"></script>
+    <script src="index.js"></script>      
+    <link rel="stylesheet" href="assets/css/index.css">
+</head>
+<body>
+    <h2>Compare two images</h2>
+    <div>
+      <div class="inputoutput">
+        <img id="imageSrc" alt="No Image" style="width: 100px; height: 100px;" />
+        <img id="imageSrc2" alt="No Image" style="width: 100px; height: 100px;" />
+        <div class="caption">imageSrc <input type="file" id="fileInput" name="file" /></div>
+        <div class="caption">imageSrc2 <input type="file" id="fileInput2" name="file" /></div>
+        <button id="compareBtn">Compare</button>
+        <canvas id="canvasOutput" width="512" height="300"></canvas>
+        <canvas id="canvasOutput2" width="512" height="300"></canvas>
+      </div>
+    </div>    
+    <script type="text/javascript">
+        let imgElement = document.getElementById('imageSrc');
+        let imgElement2 = document.getElementById('imageSrc2');
+        let inputElement = document.getElementById('fileInput');
+        let inputElement2 = document.getElementById('fileInput2');
+        let compareBtn = document.getElementById('compareBtn');
+
+        var mat, mat2;
+        inputElement.addEventListener('change', (e) => {
+          imgElement.src = URL.createObjectURL(e.target.files[0]);
+        }, false);
+
+        imgElement.onload = function() {
+          mat = cv.imread(imgElement);
+          cv.cvtColor(mat, mat, cv.COLOR_RGBA2GRAY, 0);
+        };
+
+        inputElement2.addEventListener('change', (e) => {
+          imgElement2.src = URL.createObjectURL(e.target.files[0]);
+        }, false);
+
+        imgElement2.onload = function() {
+          mat2 = cv.imread(imgElement2);
+          cv.cvtColor(mat2, mat2, cv.COLOR_RGBA2GRAY, 0);
+        };
+
+        compareBtn.addEventListener('click', () => {
+            let srcVec = new cv.MatVector();
+            srcVec.push_back(mat);
+            let srcVec2 = new cv.MatVector();
+            srcVec2.push_back(mat2);
+            let accumulate = false;
+            let channels = [0];
+            let histSize = [256];
+            let ranges = [0, 255];
+            let hist = new cv.Mat();
+            let hist2 = new cv.Mat();
+            let mask = new cv.Mat();
+            let color = new cv.Scalar(255, 255, 255);
+            let scale = 2;
+            // You can try more different parameters
+            cv.calcHist(srcVec, channels, mask, hist, histSize, ranges, accumulate);
+            let result = cv.minMaxLoc(hist, mask);
+            let max = result.maxVal;
+            let dst = new cv.Mat.zeros(mat.rows, histSize[0] * scale,
+                                    cv.CV_8UC3);
+            var hist1_values = '';
+            // draw histogram
+            for (let i = 0; i < histSize[0]; i++) {
+                hist1_values += hist.data32F[i] + ',';
+                let binVal = hist.data32F[i] * mat.rows / max;
+                let point1 = new cv.Point(i * scale, mat.rows - 1);
+                let point2 = new cv.Point((i + 1) * scale - 1, mat.rows - binVal);
+                cv.rectangle(dst, point1, point2, color, cv.FILLED);
+            }
+            console.log(hist1_values);
+            cv.imshow('canvasOutput', dst);
+
+            cv.calcHist(srcVec2, channels, mask, hist2, histSize, ranges, accumulate);
+            result = cv.minMaxLoc(hist, mask);
+            max = result.maxVal;
+            dst = new cv.Mat.zeros(mat.rows, histSize[0] * scale,
+                                    cv.CV_8UC3);
+            var hist2_values = '';
+            // draw histogram
+            for (let i = 0; i < histSize[0]; i++) {
+                hist2_values += hist2.data32F[i] + ',';
+                binVal = hist2.data32F[i] * mat.rows / max;
+                point1 = new cv.Point(i * scale, mat.rows - 1);
+                point2 = new cv.Point((i + 1) * scale - 1, mat.rows - binVal);
+                cv.rectangle(dst, point1, point2, color, cv.FILLED);
+            }
+            console.log(hist2_values);
+            cv.imshow('canvasOutput2', dst);
+            let compare_result = cv.compareHist(hist, hist2, 0);
+            alert(compare_result*100 + "%");
+            
+            mat.delete(); dst.delete(); srcVec.delete(); mask.delete(); hist.delete();
+            srcVec2.delete(); hist2.delete();
+        }, false);
+    </script>
+</body>
+</html>
