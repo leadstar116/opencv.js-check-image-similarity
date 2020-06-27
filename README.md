@@ -1,4 +1,6 @@
-This is simple website that can check images for similiarity using OpenCV.js
+## Description
+
+This is simple algorithm that can check images for similiarity using OpenCV.js
 
 I used Histogram Comparison for this.
 
